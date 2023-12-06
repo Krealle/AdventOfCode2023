@@ -8,118 +8,101 @@ const test: string = fs
   .readFileSync("day 5/test.txt", "utf-8")
   .replace(/\r\n/g, "\n");
 
-type SeedMaps = {
-  map: SeedMap[];
-};
-
-type SeedMap = {
-  upperLimit: number;
-  lowerLimit: number;
-  difference: number;
-};
-
 function findLocation(input: string, countSeedRanges: boolean) {
-  const maps = input
-    .split(/\n(?!\d)|:/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !/[a-zA-Z]/.test(line));
+  console.time("Time spent");
+  const sections = input.split("\n\n");
+  const seeds = sections[0].split(":")[1].trim().split(" ").map(Number);
 
-  /** grab our seed numbers from the array */
-  const seedNumbers: number[] = maps.splice(0, 1)[0].split(" ").map(Number);
+  const maps = sections
+    .slice(1)
+    .map((chunk) => chunk.split(":")[1].trim().split("\n"))
+    .map((chunk) =>
+      chunk.map((numbers) => {
+        const [destinationRange, sourceRange, rangeLength] = numbers
+          .split(" ")
+          .map(Number);
+        return { destinationRange, sourceRange, rangeLength };
+      })
+    );
 
-  let lowestNumber: number = Number.MAX_SAFE_INTEGER;
+  maps.forEach((map) => map.sort((a, b) => a.sourceRange - b.sourceRange));
 
-  const seedMaps: SeedMaps[] = generateSeedMaps(maps);
+  let lowestLocation = Number.MAX_SAFE_INTEGER;
 
   if (countSeedRanges) {
-    for (let idx = 0; idx < seedNumbers.length; idx += 2) {
-      console.log("Checking for ", idx, "Amount is:", seedNumbers[idx + 1]);
-
-      const startTimestamp = performance.now();
-
-      for (
-        let seedNum = seedNumbers[idx];
-        seedNum < seedNumbers[idx] + seedNumbers[idx + 1];
-        seedNum++
-      ) {
-        const searchValue = getLowestLocation(seedMaps, seedNum);
-        if (searchValue === -1) {
-          console.log(seedNum);
-          return;
-        }
-        if (searchValue < lowestNumber && searchValue !== -1) {
-          lowestNumber = searchValue;
-        }
-      }
-
-      const endTimestamp = performance.now();
-
+    for (let idx = 0; idx < seeds.length; idx += 2) {
+      const baseSeed = seeds[idx];
+      const seedRange = seeds[idx + 1];
       console.log(
-        "Finished for ",
-        idx,
-        "Time spent:",
-        endTimestamp - startTimestamp,
-        "Lowest Number is:",
-        lowestNumber
+        "Running:",
+        Math.round((idx + 1) / 2) + "/" + seeds.length / 2
       );
-    }
 
-    return lowestNumber;
+      for (let seedNum = baseSeed; seedNum < baseSeed + seedRange; seedNum++) {
+        let currentDestination = seedNum;
+
+        for (const map of maps) {
+          let low = 0;
+          let high = map.length - 1;
+
+          while (low <= high) {
+            const mid = Math.floor((low + high) / 2);
+
+            if (currentDestination < map[mid].sourceRange) {
+              high = mid - 1;
+            } else {
+              low = mid + 1;
+            }
+          }
+
+          const entryIndex = high;
+
+          if (entryIndex >= 0) {
+            const entry = map[entryIndex];
+            const difference = entry.destinationRange - entry.sourceRange;
+
+            if (
+              currentDestination <= entry.sourceRange + entry.rangeLength &&
+              currentDestination >= entry.sourceRange
+            ) {
+              currentDestination += difference;
+            }
+          }
+        }
+
+        if (currentDestination < lowestLocation) {
+          lowestLocation = currentDestination;
+        }
+      }
+    }
   } else {
-    const startTimestamp = performance.now();
-    for (const seedNumber of seedNumbers) {
-      const searchValue = getLowestLocation(seedMaps, seedNumber);
+    for (const seedNum of seeds) {
+      let currentMapNumber = seedNum;
 
-      if (lowestNumber === 0 || searchValue < lowestNumber) {
-        lowestNumber = searchValue;
+      for (const map of maps) {
+        for (const entry of map) {
+          const upperLimit = entry.sourceRange + entry.rangeLength;
+          const lowerLimit = entry.sourceRange;
+          const difference = entry.destinationRange - entry.sourceRange;
+
+          if (
+            currentMapNumber <= upperLimit &&
+            currentMapNumber >= lowerLimit
+          ) {
+            currentMapNumber += difference;
+            break;
+          }
+        }
       }
-    }
-    const endTimestamp = performance.now();
-    console.log(
-      "Time spent:",
-      endTimestamp - startTimestamp,
-      "Lowest Number is:",
-      lowestNumber
-    );
-  }
-
-  return lowestNumber;
-}
-
-function generateSeedMaps(maps: string[]): SeedMaps[] {
-  const seedMaps: SeedMaps[] = [];
-
-  for (const map of maps) {
-    const mapInfo = map.split("\n");
-    const seedMap: SeedMap[] = [];
-    for (const entry of mapInfo) {
-      const entryInfo = entry.split(" ").map(Number);
-
-      seedMap.push({
-        upperLimit: entryInfo[1] + entryInfo[2],
-        lowerLimit: entryInfo[1],
-        difference: entryInfo[0] - entryInfo[1],
-      });
-    }
-    seedMaps.push({ map: seedMap });
-  }
-
-  return seedMaps;
-}
-
-function getLowestLocation(maps: SeedMaps[], seedNumber: number): number {
-  let foundValue = false;
-  for (const map of maps) {
-    for (const entry of map.map) {
-      if (seedNumber <= entry.upperLimit && seedNumber >= entry.lowerLimit) {
-        seedNumber += entry.difference;
-        foundValue = true;
-        break;
+      if (currentMapNumber < lowestLocation) {
+        lowestLocation = currentMapNumber;
       }
     }
   }
 
-  return foundValue ? seedNumber : -1;
+  console.timeEnd("Time spent");
+
+  return lowestLocation;
 }
 
 console.log("Part 1:", findLocation(input, false));
