@@ -22,7 +22,6 @@ enum HandType {
   TwoPair = "Two pair",
   OnePair = "One pair",
   HighCard = "High card",
-  Unknown = "Unknown",
 }
 
 const cardValue = [
@@ -41,8 +40,8 @@ const cardValue = [
   "2",
 ];
 
-function getCardValue(card: string, joker: boolean): number {
-  return joker && card === "J"
+function getCardValue(card: string, hasJoker: boolean): number {
+  return hasJoker && card === "J"
     ? cardValue.length + 1
     : cardValue.findIndex((cardValue) => cardValue === card);
 }
@@ -51,84 +50,43 @@ function getHandTypeValue(type: HandType): number {
   return Object.values(HandType).indexOf(type);
 }
 
-function getHandType(hand: string, joker: boolean): HandType {
-  const letterCount: { [key: string]: number } = {};
-  let fourOfAKind = 0;
-  let threeOfAKind = 0;
-  let twoOfAKind = 0;
+function getHandType(hand: string, hasJoker: boolean): HandType {
+  const cardCount: { [key: string]: number } = {};
 
-  const jokers = joker ? hand.match(/J/g)?.length || 0 : 0;
-  if (jokers >= 4 && jokers) return HandType.FiveOfAKind;
+  let jokerCount = 0;
 
-  for (const char of hand) {
-    letterCount[char] = (letterCount[char] || 0) + 1;
-
-    if (char === "J" && joker) {
+  for (const card of hand) {
+    if (card === "J" && hasJoker) {
+      jokerCount++;
       continue;
     }
-
-    const curLetterCount = letterCount[char];
-
-    if (curLetterCount === 5) return HandType.FiveOfAKind;
-
-    if (curLetterCount === 4) {
-      fourOfAKind++;
-      threeOfAKind--;
-    }
-
-    if (curLetterCount === 3) {
-      threeOfAKind++;
-      twoOfAKind--;
-    }
-
-    if (curLetterCount === 2) twoOfAKind++;
+    cardCount[card] = (cardCount[card] || 0) + 1;
   }
 
-  if (
-    (fourOfAKind === 1 && jokers === 1) ||
-    (threeOfAKind === 1 && jokers === 2) ||
-    (twoOfAKind === 1 && jokers === 3)
-  ) {
-    return HandType.FiveOfAKind;
-  }
+  const [firstCard, secondCard] = Object.values(cardCount).sort(
+    (a, b) => b - a
+  );
 
-  if (
-    fourOfAKind === 1 ||
-    (threeOfAKind === 1 && jokers === 1) ||
-    (twoOfAKind === 1 && jokers === 2) ||
-    jokers === 3
-  ) {
-    return HandType.FourOfAKind;
-  }
-
-  if (
-    (threeOfAKind === 1 && twoOfAKind === 1) ||
-    (twoOfAKind === 2 && jokers === 1)
-  ) {
-    return HandType.FullHouse;
-  }
-
-  if (
-    (threeOfAKind === 1 && jokers === 0) ||
-    (twoOfAKind === 1 && jokers === 1) ||
-    jokers === 2
-  ) {
-    return HandType.ThreeOfAKind;
-  }
-
-  if (twoOfAKind === 2) return HandType.TwoPair;
-
-  if (twoOfAKind === 1 || jokers === 1) return HandType.OnePair;
+  if (firstCard + jokerCount === 5) return HandType.FiveOfAKind;
+  if (firstCard + jokerCount === 4) return HandType.FourOfAKind;
+  if (firstCard + jokerCount + secondCard === 5) return HandType.FullHouse;
+  if (firstCard + jokerCount === 3) return HandType.ThreeOfAKind;
+  if (firstCard + secondCard === 4) return HandType.TwoPair;
+  if (firstCard + jokerCount === 2) return HandType.OnePair;
 
   return HandType.HighCard;
 }
 
-function camelCards(input: string, joker: boolean) {
+function camelCards(input: string, hasJoker: boolean) {
   console.time("Time spent");
 
   const hands: Hand[] = input.split("\n").map((hand) => {
     const [cards, bid] = hand.split(" ");
-    return { cards, bid: parseInt(bid), handType: getHandType(cards, joker) };
+    return {
+      cards,
+      bid: parseInt(bid),
+      handType: getHandType(cards, hasJoker),
+    };
   });
 
   hands.sort((a, b) => {
@@ -138,8 +96,8 @@ function camelCards(input: string, joker: boolean) {
 
     for (let value = 0; value < cardValue.length; value++) {
       const difference =
-        getCardValue(b.cards[value], joker) -
-        getCardValue(a.cards[value], joker);
+        getCardValue(b.cards[value], hasJoker) -
+        getCardValue(a.cards[value], hasJoker);
 
       if (difference !== 0) return difference;
     }
