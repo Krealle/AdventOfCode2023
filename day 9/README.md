@@ -1,6 +1,6 @@
 # About
 
-## Advent of Code 2023 --- Day 7: Camel Cards ---
+## Advent of Code 2023 --- Day 9: Mirage Maintenance ---
 
 ### PART 1
 

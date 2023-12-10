@@ -1,6 +1,6 @@
 # About
 
-## Advent of Code 2023 --- Day 7: Camel Cards ---
+## Advent of Code 2023 --- Day 8: Haunted Wasteland ---
 
 ### PART 1
 
