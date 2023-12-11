@@ -47,29 +47,46 @@ function galaxyPaths(input: string, expansionRate: number) {
   let totalTravelTime = 0;
 
   galaxies.forEach((galaxyStart, idx) => {
-    totalTravelTime += galaxies.reduce((acc, galaxyEnd, jdx) => {
+    let startYPad: number = 0;
+    let startXPad: number = 0;
+
+    emptyRows.forEach((value) => {
+      if (value < galaxyStart.y) {
+        startYPad++;
+      }
+    });
+
+    emptyColumns.forEach((value) => {
+      if (value < galaxyStart.x) {
+        startXPad++;
+      }
+    });
+
+    const xStartPad = startXPad * Math.max(expansionRate - 1, 1);
+    const yStartPad = startYPad * Math.max(expansionRate - 1, 1);
+
+    galaxies.forEach((galaxyEnd, jdx) => {
       if (idx >= jdx) {
-        return acc;
+        return;
       }
 
-      const endYPad = new Set(
-        [...emptyRows].filter((value) => value < galaxyEnd.y)
-      );
-      const endXPad = new Set(
-        [...emptyColumns].filter((value) => value < galaxyEnd.x)
-      );
+      let endYPad: number = 0;
+      let endXPad: number = 0;
 
-      const startYPad = new Set(
-        [...emptyRows].filter((value) => value < galaxyStart.y)
-      );
-      const startXPad = new Set(
-        [...emptyColumns].filter((value) => value < galaxyStart.x)
-      );
+      emptyRows.forEach((value) => {
+        if (value < galaxyEnd.y) {
+          endYPad++;
+        }
+      });
 
-      const xEndPad = endXPad.size * Math.max(expansionRate - 1, 1);
-      const yEndPad = endYPad.size * Math.max(expansionRate - 1, 1);
-      const xStartPad = startXPad.size * Math.max(expansionRate - 1, 1);
-      const yStartPad = startYPad.size * Math.max(expansionRate - 1, 1);
+      emptyColumns.forEach((value) => {
+        if (value < galaxyEnd.x) {
+          endXPad++;
+        }
+      });
+
+      const xEndPad = endXPad * Math.max(expansionRate - 1, 1);
+      const yEndPad = endYPad * Math.max(expansionRate - 1, 1);
 
       const endXPos = galaxyEnd.x + xEndPad;
       const endYPos = galaxyEnd.y + yEndPad;
@@ -78,9 +95,8 @@ function galaxyPaths(input: string, expansionRate: number) {
 
       const distance =
         Math.abs(startXPos - endXPos) + Math.abs(startYPos - endYPos);
-
-      return acc + distance;
-    }, 0);
+      totalTravelTime += distance;
+    });
   });
 
   console.timeEnd("Time Spent");
