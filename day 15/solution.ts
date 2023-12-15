@@ -8,19 +8,28 @@ const test: string = fs
   .readFileSync("day 15/test.txt", "utf-8")
   .replace(/\r\n/g, "\n");
 
+type Operation = {
+  label: string;
+  type: string;
+  focalLength: number;
+};
+
 function hashDecoder(input: string) {
   console.time("Time spent");
-  const steps = input.split(",");
+  const operations = input.split(",");
 
-  let totSum: number = 0;
+  let totSum = 0;
 
-  const boxes = new Map<number, string[]>();
+  const boxes = new Map<number, Operation[]>();
 
-  steps.forEach((operation) => {
+  operations.forEach((operation) => {
     let sum = 0;
     let labelSum = 0;
 
-    const label = operation.split(/([-=])/);
+    const splitOperation = operation.split(/([-=])/);
+    const label = splitOperation[0];
+    const op = splitOperation[1];
+    const focalLength = Number(splitOperation[2]);
 
     for (let i = 0; i < operation.length; i++) {
       const char = operation[i];
@@ -28,24 +37,26 @@ function hashDecoder(input: string) {
       sum *= 17;
       sum %= 256;
 
-      if (i > label[0].length - 1) {
-        continue;
+      if (i === label.length - 1) {
+        labelSum = sum;
       }
-      const labelChar = label[0][i];
-      labelSum += labelChar.charCodeAt(0);
-      labelSum *= 17;
-      labelSum %= 256;
     }
 
-    const box = boxes.get(labelSum);
-    if (box) {
-      const index = box.findIndex((op) => op.slice(0, -1) === label[0]);
+    const box: Operation[] | undefined = boxes.get(labelSum);
+    const newOperation: Operation = {
+      label: label,
+      type: op,
+      focalLength: focalLength,
+    };
 
-      if (label[1] === "=") {
+    if (box) {
+      const index = box.findIndex((boxOp) => boxOp.label === label);
+
+      if (op === "=") {
         if (index === -1) {
-          box.push(label[0] + label[2]);
+          box.push(newOperation);
         } else {
-          box[index] = label[0] + label[2];
+          box[index] = newOperation;
         }
       } else {
         if (index !== -1) {
@@ -53,8 +64,8 @@ function hashDecoder(input: string) {
         }
       }
     } else {
-      if (label[1] === "=") {
-        boxes.set(labelSum, [label[0] + label[2]]);
+      if (op === "=") {
+        boxes.set(labelSum, [newOperation]);
       }
     }
 
@@ -65,9 +76,7 @@ function hashDecoder(input: string) {
 
   boxes.forEach((box, boxNumber) => {
     boxSum += box.reduce((acc, operation, slot) => {
-      const focalLength = Number(operation[operation.length - 1]);
-
-      return (acc += (1 + boxNumber) * (1 + slot) * focalLength);
+      return (acc += (1 + boxNumber) * (1 + slot) * operation.focalLength);
     }, 0);
   });
 
